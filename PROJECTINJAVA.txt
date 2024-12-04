@@ -1,0 +1,338 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+// User Module
+class User {
+    private String username;
+    private String password;
+    private String role;
+
+    public User(String username, String password, String role) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+    }
+
+    public boolean login(String inputUsername, String inputPassword) {
+        return inputUsername.equals(username) && inputPassword.equals(password);
+    }
+}
+
+// Inventory Management Module
+class Inventory {
+    private HashMap<String, Integer> stock = new HashMap<>();
+    private HashMap<String, Double> prices = new HashMap<>();
+
+    public void addStock(String productName, int quantity, double price) {
+        stock.put(productName, stock.getOrDefault(productName, 0) + quantity);
+        prices.put(productName, price);
+    }
+
+    public int checkStock(String productName) {
+        return stock.getOrDefault(productName, 0);
+    }
+
+    public void updateStock(String productName, int quantity) {
+        if (stock.containsKey(productName)) {
+            stock.put(productName, quantity);
+        }
+    }
+
+    public double getPrice(String productName) {
+        return prices.getOrDefault(productName, 0.0);
+    }
+
+    public String viewStock() {
+        StringBuilder sb = new StringBuilder("Current Inventory:\n");
+        for (String product : stock.keySet()) {
+            sb.append("Product: ").append(product)
+              .append(", Quantity: ").append(stock.get(product))
+              .append(", Price: Rs").append(prices.get(product)).append("\n");
+        }
+        return sb.toString();
+    }
+}
+
+// Order Management Module
+class Order {
+    private String orderId;
+    private String productName;
+    private int quantity;
+    private double totalPrice;
+
+    public Order(String orderId, String productName, int quantity, double totalPrice) {
+        this.orderId = orderId;
+        this.productName = productName;
+        this.quantity = quantity;
+        this.totalPrice = totalPrice;
+    }
+
+    public void processOrder(Inventory inventory) {
+        if (inventory.checkStock(productName) >= quantity) {
+            inventory.updateStock(productName, inventory.checkStock(productName) - quantity);
+        }
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    public double getTotalPrice() {
+        return totalPrice;
+    }
+}
+
+// Customer Module
+class Customer {
+    private String name;
+    private String email;
+    private List<Order> orderHistory = new ArrayList<>();
+
+    public Customer(String name, String email) {
+        this.name = name;
+        this.email = email;
+    }
+
+    public void addOrder(Order order) {
+        orderHistory.add(order);
+    }
+
+    public String viewOrderHistory() {
+        StringBuilder sb = new StringBuilder("Order History for ").append(name).append(":\n");
+        for (Order order : orderHistory) {
+            sb.append("Order ID: ").append(order.getOrderId())
+              .append(", Total Price: Rs").append(order.getTotalPrice()).append("\n");
+        }
+        return sb.toString();
+    }
+}
+
+// Payment Module
+class Payment {
+    public String processPayment(double amount) {
+        return "Payment of Rs" + amount + " processed successfully.";
+    }
+}
+
+// Main Class
+public class InventoryManagementSystemAWT extends Frame {
+    private User admin;
+    private Inventory inventory;
+    private Customer customer;
+    private Payment payment;
+
+    private CardLayout cardLayout;
+    private Panel cardPanel;
+    private TextArea outputArea;
+
+    public InventoryManagementSystemAWT() {
+        admin = new User("admin", "admin123", "Admin");
+        inventory = new Inventory();
+        payment = new Payment();
+
+        // Main frame setup
+        setTitle("Inventory Management System");
+        setSize(600, 400);
+        setLayout(new BorderLayout());
+
+        // Output area
+        outputArea = new TextArea();
+        outputArea.setEditable(false);
+        add(outputArea, BorderLayout.CENTER);
+
+        // Navigation buttons
+        Panel navigationPanel = new Panel(new FlowLayout());
+        Button loginButton = new Button("Login");
+        Button stockButton = new Button("Stock");
+        Button customerButton = new Button("Customer");
+        Button orderButton = new Button("Order");
+        Button reportButton = new Button("Report");
+        Button logoutButton = new Button("Logout");
+
+        navigationPanel.add(loginButton);
+        navigationPanel.add(stockButton);
+        navigationPanel.add(customerButton);
+        navigationPanel.add(orderButton);
+        navigationPanel.add(reportButton);
+        navigationPanel.add(logoutButton);
+
+        add(navigationPanel, BorderLayout.SOUTH);
+
+        // Card layout for content
+        cardLayout = new CardLayout();
+        cardPanel = new Panel(cardLayout);
+        add(cardPanel, BorderLayout.NORTH);
+
+        // Panels for each module
+        Panel loginPanel = createLoginPanel();
+        Panel stockPanel = createStockPanel();
+        Panel customerPanel = createCustomerPanel();
+        Panel orderPanel = createOrderPanel();
+        Panel reportPanel = createReportPanel();
+
+        cardPanel.add("Login", loginPanel);
+        cardPanel.add("Stock", stockPanel);
+        cardPanel.add("Customer", customerPanel);
+        cardPanel.add("Order", orderPanel);
+        cardPanel.add("Report", reportPanel);
+
+        // Button actions
+        loginButton.addActionListener(e -> cardLayout.show(cardPanel, "Login"));
+        stockButton.addActionListener(e -> cardLayout.show(cardPanel, "Stock"));
+        customerButton.addActionListener(e -> cardLayout.show(cardPanel, "Customer"));
+        orderButton.addActionListener(e -> cardLayout.show(cardPanel, "Order"));
+        reportButton.addActionListener(e -> cardLayout.show(cardPanel, "Report"));
+        logoutButton.addActionListener(e -> outputArea.setText("Logged out successfully."));
+
+        // Window close
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                dispose();
+            }
+        });
+
+        setVisible(true);
+    }
+
+    private Panel createLoginPanel() {
+        Panel panel = new Panel(new GridLayout(3, 2));
+        TextField usernameField = new TextField();
+        TextField passwordField = new TextField();
+        passwordField.setEchoChar('*');
+        Button loginButton = new Button("Login");
+
+        loginButton.addActionListener(e -> {
+            String username = usernameField.getText();
+            String password = passwordField.getText();
+            if (admin.login(username, password)) {
+                outputArea.setText("Login successful!");
+                cardLayout.show(cardPanel, "Stock");
+            } else {
+                outputArea.setText("Login failed. Invalid username or password.");
+            }
+        });
+
+        panel.add(new Label("Username:"));
+        panel.add(usernameField);
+        panel.add(new Label("Password:"));
+        panel.add(passwordField);
+        panel.add(new Label());
+        panel.add(loginButton);
+
+        return panel;
+    }
+
+    private Panel createStockPanel() {
+        Panel panel = new Panel(new GridLayout(4, 2));
+        TextField productField = new TextField();
+        TextField quantityField = new TextField();
+        TextField priceField = new TextField();
+        Button addStockButton = new Button("Add Stock");
+
+        addStockButton.addActionListener(e -> {
+            String product = productField.getText();
+            int quantity = Integer.parseInt(quantityField.getText());
+            double price = Double.parseDouble(priceField.getText());
+            inventory.addStock(product, quantity, price);
+            outputArea.setText("Stock added for " + product);
+        });
+
+        panel.add(new Label("Product:"));
+        panel.add(productField);
+        panel.add(new Label("Quantity:"));
+        panel.add(quantityField);
+        panel.add(new Label("Price:"));
+        panel.add(priceField);
+        panel.add(new Label());
+        panel.add(addStockButton);
+
+        return panel;
+    }
+
+    private Panel createCustomerPanel() {
+        Panel panel = new Panel(new GridLayout(3, 2));
+        TextField nameField = new TextField();
+        TextField emailField = new TextField();
+        Button createCustomerButton = new Button("Create Customer");
+
+        createCustomerButton.addActionListener(e -> {
+            String name = nameField.getText();
+            String email = emailField.getText();
+            customer = new Customer(name, email);
+            outputArea.setText("Customer created: " + name);
+        });
+
+        panel.add(new Label("Name:"));
+        panel.add(nameField);
+        panel.add(new Label("Email:"));
+        panel.add(emailField);
+        panel.add(new Label());
+        panel.add(createCustomerButton);
+
+        return panel;
+    }
+
+    private Panel createOrderPanel() {
+        Panel panel = new Panel(new GridLayout(3, 2));
+        TextField productField = new TextField();
+        TextField quantityField = new TextField();
+        Button placeOrderButton = new Button("Place Order");
+
+        placeOrderButton.addActionListener(e -> {
+            if (customer == null) {
+                outputArea.setText("No customer exists. Create one first.");
+                return;
+            }
+
+            String product = productField.getText();
+            int quantity = Integer.parseInt(quantityField.getText());
+
+            if (inventory.checkStock(product) >= quantity) {
+                double price = inventory.getPrice(product) * quantity;
+                Order order = new Order(UUID.randomUUID().toString(), product, quantity, price);
+                order.processOrder(inventory);
+                customer.addOrder(order);
+                outputArea.setText("Order placed. Total: Rs" + price);
+            } else {
+                outputArea.setText("Insufficient stock for " + product);
+            }
+        });
+
+        panel.add(new Label("Product:"));
+        panel.add(productField);
+        panel.add(new Label("Quantity:"));
+        panel.add(quantityField);
+        panel.add(new Label());
+        panel.add(placeOrderButton);
+
+        return panel;
+    }
+
+    private Panel createReportPanel() {
+        Panel panel = new Panel(new GridLayout(2, 1));
+        Button viewStockButton = new Button("View Inventory");
+        Button viewOrderHistoryButton = new Button("View Order History");
+
+        viewStockButton.addActionListener(e -> {
+            outputArea.setText(inventory.viewStock());
+        });
+
+        viewOrderHistoryButton.addActionListener(e -> {
+            if (customer == null) {
+                outputArea.setText("No customer exists.");
+            } else {
+                outputArea.setText(customer.viewOrderHistory());
+            }
+        });
+
+        panel.add(viewStockButton);
+        panel.add(viewOrderHistoryButton);
+
+        return panel;
+    }
+
+    public static void main(String[] args) {
+        new InventoryManagementSystemAWT();
+    }
+}
